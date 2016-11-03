@@ -17,6 +17,8 @@ public class MainActivity extends AppCompatActivity {
 
     // Request code for READ_CONTACTS, any number > 0
     private static final int PERMISSIONS_REQUEST_READ_CONTACTS = 100;
+
+
     // Projections (Columns) to get from Contact Info Query
     private String[] contactProjection = {
             ContactsContract.CommonDataKinds.Phone.NUMBER,
@@ -24,11 +26,15 @@ public class MainActivity extends AppCompatActivity {
     };
     // The Name to seach for, TODO: Replace this with data read from bluetooth from enzo
     private String[]  searchName = {"Enea"};
+
+    /**
+     * Gets and prints all Contact information on user phone.
+     * TODO:
+     * @return Nothing so far
+     */
     private void getContacts() {
-        /*
-            ABOUT: Gets and prints all Contact information on user phone.
-            OUTPUT: TODO:
-         */
+
+
         // Check if permission is granted
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
