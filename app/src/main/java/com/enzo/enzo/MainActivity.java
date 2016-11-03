@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
                 // Permission is granted
                 getContacts();
             } else {
-                Toast.makeText(this, "Until you grant the permission, we canot display the names", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Until you grant the permission, we cannot display the names", Toast.LENGTH_SHORT).show();
             }
         }
     }
