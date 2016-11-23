@@ -1,7 +1,11 @@
 package com.enzo.enzo;
 
 import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -15,6 +19,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends AppCompatActivity {
@@ -23,7 +28,11 @@ public class MainActivity extends AppCompatActivity {
     private static final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 100;
     private static final int MY_PERMISSIONS_REQUEST_SEND_SMS = 101;
     private static final int MY_PERMISSIONS_REQUEST_CALL_PHONE = 102;
-    private static final int MY_PERMISSIONS_REQUEST_SCREEN_OVERLAY = 103;
+    private static final int MY_PERMISSIONS_REQUEST_SYSTEM_ALERT_WINDOW = 103;
+    private static final int MY_PERMISSIONS_REQUEST_BLUETOOTH = 104;
+    private static final int MY_PERMISSIONS_REQUEST_READ_PHONE_STATE = 105;
+    // Request for Bluetooth
+    private static final int REQUEST_ENABLE_BT = 1;
 
     // Projections (Columns) to get from Contact Info Query
     private String[] contactProjection = {
@@ -35,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
      * @param contactName Name of contact to find
      * @return The UserContact object containing the number associated with the name
      */
-    private UserContact getContacts(String contactName) {
+    private UserContact getContact(String contactName) {
         // Check if permission is granted
         UserContact contactFound = new UserContact();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
@@ -101,23 +110,62 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        String list = "";
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            // When discovery finds a device
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                // Get the BluetoothDevice object from the Intent
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                // Add the name and address to an array adapter to show in a ListView
+                list += device.getName() + "\n" + device.getAddress();
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        UserContact test = getContacts("Coochie");
-//        if(textContact(test, "Does this work")){
+
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter == null) {
+            // Device does not support Bluetooth
+        }
+        if (!mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        }
+        BluetoothDevice raspberrypi = null;
+        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+        // If there are paired devices
+        if (pairedDevices.size() > 0) {
+            for (BluetoothDevice device : pairedDevices) {
+                if(device.getAddress().equals("B8:27:EB:A8:D8:2D")) { // Address of raspberrypi
+                    Log.i("MY INFO", "Found device named: " + device.getName() + "\nWith Address: " + device.getAddress());
+                    raspberrypi = device;
+                    break;
+                }
+            }
+        }
+        ConnectThread connectThread = new ConnectThread(raspberrypi, mBluetoothAdapter);
+        connectThread.start();
+        Log.i("MY INFO", "Creating ConnectedThread");
+//        UserContact test = getContact("Bashar");
+//        if(textContact(test, "Hey, It's a test")){
 //            // Send success message to ENZO
 //            Log.i("MY INFO", "Message Sent");
 //        } else {
 //            // Send failure message to ENZO
 //            Log.i("MY INFO", "Failed to sent Message");
 //        }
-        if(callContact(test)){
-            Log.i("MY INFO", "Calling " + test.getName());
-        } else {
-            Log.i("MY INFO", "Failed to call " + test.getName());
-        }
+//        if(callContact(test)){
+//            Log.i("MY INFO", "Calling " + test.getName());
+//        } else {
+//            Log.i("MY INFO", "Failed to call " + test.getName());
+//        }
     }
 
     @Override
@@ -126,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
         switch(requestCode){
             case MY_PERMISSIONS_REQUEST_READ_CONTACTS:
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    test = getContacts("Coochie");
+                    test = getContact("Enea");
                 } else {
                     Toast.makeText(this, "Until you grant the permission, we cannot display the names", Toast.LENGTH_SHORT).show();
                 }
@@ -145,12 +193,27 @@ public class MainActivity extends AppCompatActivity {
                     Log.i("MY INFO", "Until you grant the permission, we cannot call a contact");
                 }
                 break;
-            case MY_PERMISSIONS_REQUEST_SCREEN_OVERLAY:
+            case MY_PERMISSIONS_REQUEST_SYSTEM_ALERT_WINDOW:
                 if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     Log.i("MY INFO", "Accepted Screen Overlay");
                 } else {
                     Log.i("MY INFO", "Until you grant the permission, we cannot display a screen overlay");
                 }
+                break;
+            case MY_PERMISSIONS_REQUEST_BLUETOOTH:
+                if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.i("MY INFO", "Accepted Bluetooth");
+                } else {
+                    Log.i("MY INFO", "Until you grant the permission, we cannot use bluetooth");
+                }
+                break;
+            case MY_PERMISSIONS_REQUEST_READ_PHONE_STATE:
+                if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.i("MY INFO", "Accepted Read Phone State");
+                } else {
+                    Log.i("MY INFO", "Until you grant the permission, we cannot Read Phone State");
+                }
+                break;
         }
     }
 }
