@@ -66,6 +66,7 @@ class ConnectThread extends Thread {
         Log.i("MY INFO", "Created ConnectionThread");
         connectionThread.start();
         Log.i("MY INFO", "Started ConnectionThread");
+        connectionThread.write("I got your message".getBytes());
     }
 
     /** Will cancel an in-progress connection, and close the socket */
