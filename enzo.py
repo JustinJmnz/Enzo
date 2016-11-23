@@ -3,7 +3,6 @@ from gtts import gTTS
 import os
 import sys
 from bluetooth import *
-#import bluetooth
 
 def bluetooth():
         server_sock=BluetoothSocket( RFCOMM )
@@ -25,7 +24,7 @@ def bluetooth():
 
         client_sock, client_info = server_sock.accept()
         print("Accepted connection from ", client_info)
-        client_sock.send("Hello, This is Enzo");
+        client_sock.send("call Jess");
         try:
             while True:
                 data = client_sock.recv(1024)
