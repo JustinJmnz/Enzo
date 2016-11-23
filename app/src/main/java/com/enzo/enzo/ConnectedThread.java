@@ -1,12 +1,12 @@
 package com.enzo.enzo;
 
 import android.bluetooth.BluetoothSocket;
+import android.os.Handler;
 import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.logging.Handler;
 
 /**
  * Created by Justin on 11/23/2016.
@@ -16,21 +16,24 @@ public class ConnectedThread extends Thread {
     private final BluetoothSocket mmSocket;
     private final InputStream mmInStream;
     private final OutputStream mmOutStream;
+    private final Handler bluetoothHandler;
 
-    public ConnectedThread(BluetoothSocket socket) {
+    private String messageFromEnzo = null;
+
+    public ConnectedThread(BluetoothSocket socket, Handler handler) {
         mmSocket = socket;
         InputStream tmpIn = null;
         OutputStream tmpOut = null;
-
+        bluetoothHandler = handler;
 
         // Get the input and output streams, using temp objects because
         // member streams are final
         try {
             tmpIn = mmSocket.getInputStream();
             tmpOut = mmSocket.getOutputStream();
-            Log.i("MY INFO", "Successfully got Input and Output streams");
+            Log.i("ConnectedThread", "Successfully got Input and Output streams");
         } catch (IOException e) {
-            Log.i("MY INFO", "Error in ConnectedThread(): " + e.getMessage());
+            Log.i("ConnectedThread", "Error in ConnectedThread(): " + e.getMessage());
         }
 
         mmInStream = tmpIn;
@@ -46,8 +49,10 @@ public class ConnectedThread extends Thread {
             try {
                 // Read from the InputStream
                 bytes = mmInStream.read(buffer);
-                // Send the obtained bytes to the UI activity
-                Log.i("MY INFO", "Read from InputStream: " + new String(buffer, 0, bytes));
+                messageFromEnzo = new String(buffer, 0 , bytes);
+                // Send the obtained bytes to the main activity handler, 1 is for case statement in handler
+                bluetoothHandler.obtainMessage(1, messageFromEnzo).sendToTarget();
+                Log.i("ConnectedThread", "Read from InputStream: " + messageFromEnzo);
             } catch (IOException e) {
                 break;
             }
@@ -66,5 +71,9 @@ public class ConnectedThread extends Thread {
         try {
             mmSocket.close();
         } catch (IOException e) { }
+    }
+
+    public String getMessageFromEnzo() {
+        return this.messageFromEnzo;
     }
 }

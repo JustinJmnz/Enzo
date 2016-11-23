@@ -11,6 +11,8 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -33,6 +35,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int MY_PERMISSIONS_REQUEST_READ_PHONE_STATE = 105;
     // Request for Bluetooth
     private static final int REQUEST_ENABLE_BT = 1;
+
+    private ConnectThread connectThread;
 
     // Projections (Columns) to get from Contact Info Query
     private String[] contactProjection = {
@@ -124,6 +128,36 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    public Handler bluetoothHandler = new Handler(){
+
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case 1: // Bluetooth Received from enzo, 1 is sent to handler from ConnectedThread
+                    String text = (String) msg.obj;
+                    String [] commands = text.split(" ");
+                    UserContact userContact = getContact(commands[1]);
+                    String action = commands[0].toLowerCase();
+
+                    switch (action) {
+                        case "call":
+                            connectThread.writeToEnzo("Calling " + userContact.getName());
+                            callContact(userContact);
+                            break;
+                        case "text":
+                            StringBuilder message = new StringBuilder();
+                            for (int i = 2; i < commands.length; i++) {
+                                message.append(commands[i]).append(" ");
+                            }
+                            connectThread.writeToEnzo("Texting " + userContact.getName() + " with a message of, " + message.toString());
+                            textContact(userContact, message.toString());
+                            break;
+                    }
+                    Log.i("MainActivity", "Message received: " + text);
+                    break;
+            }
+        }
+  };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,22 +184,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        ConnectThread connectThread = new ConnectThread(raspberrypi, mBluetoothAdapter);
+        // Thread that connects to the raspberry pi
+        connectThread = new ConnectThread(raspberrypi, mBluetoothAdapter, bluetoothHandler);
         connectThread.start();
-        Log.i("MY INFO", "Creating ConnectedThread");
-//        UserContact test = getContact("Bashar");
-//        if(textContact(test, "Hey, It's a test")){
-//            // Send success message to ENZO
-//            Log.i("MY INFO", "Message Sent");
-//        } else {
-//            // Send failure message to ENZO
-//            Log.i("MY INFO", "Failed to sent Message");
-//        }
-//        if(callContact(test)){
-//            Log.i("MY INFO", "Calling " + test.getName());
-//        } else {
-//            Log.i("MY INFO", "Failed to call " + test.getName());
-//        }
+        Log.i("MY INFO", "Created ConnectedThread");
     }
 
     @Override
