@@ -3,8 +3,32 @@ from gtts import gTTS
 import os
 import sys
 from bluetooth import *
+import threading
 
-def bluetooth():
+
+clientSocket = None
+serverSocket = None
+
+def sendBluetooth(message):
+        clientSocket.send(message)
+
+def receiveBluetooth():
+        try:
+            while True:
+                data = clientSocket.recv(1024)
+                if (len(data) == 0):
+                        break
+                else:
+                        print("received [%s]" % data)
+        except IOError:
+            pass
+
+        print("disconnected")
+
+        clientSocket.close()
+        serverSocket.close()
+        
+def bluetoothSetup():
         server_sock=BluetoothSocket( RFCOMM )
         server_sock.bind(("",PORT_ANY))
         server_sock.listen(1)
@@ -24,22 +48,20 @@ def bluetooth():
 
         client_sock, client_info = server_sock.accept()
         print("Accepted connection from ", client_info)
-        client_sock.send("call Jess");
-        try:
-            while True:
-                data = client_sock.recv(1024)
-                if len(data) == 0: break
-                print("received [%s]" % data)
-        except IOError:
-            pass
 
-        print("disconnected")
-
-        client_sock.close()
-        server_sock.close()
+        # These are global variables
+        global clientSocket
+        clientSocket = client_sock
+        global serverSocket
+        serverSocket = server_sock
+        
+        #sendBluetooth(clientSocket, "call Enea")
+        #receiveBluetooth(clientSocket, serverSocket)
+        
         print("all done")
 
 
+        
 # Repeats a given string to the user through usb speaker
 def repeater(string_to_repeat):
         string_to_repeat = string_to_repeat + "."
@@ -57,11 +79,13 @@ def parseAudio(audio):
         print("splitAudio[1]: " + splitAudio[1])
         if(splitAudio[0] == "call"):
                 repeater("Calling: " + splitAudio[1])
+                sendBluetooth("call " + splitAudio[1])
                 return "Calling: " + splitAudio[1]
         elif(splitAudio[0] == "text"):
                 repeater("What is your message?")
                 message = listener()
                 repeater("Texing" + splitAudio[1] + " saying " + message)
+                sendBluetooth("text " + splitAudio[1] + " " + message)
                 return "Texting: " + splitAudio[1] + " Message: " + message
         else:
                 return audio
@@ -90,10 +114,12 @@ def listener():
   
 # Start of program
 if __name__ == "__main__":
-        #what_i_said = listener()
-        #if(what_i_said == None):
-        #        sys.exit()
-        #print(what_i_said)
-        #command = parseAudio(what_i_said)
-        #print(command)
-        bluetooth()
+        waiting = False
+        bluetoothSetup()
+        what_i_said = listener()
+        if(what_i_said == None):
+                sys.exit()
+        print(what_i_said)
+        command = parseAudio(what_i_said)
+        print(command)
+        
